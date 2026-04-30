@@ -1,8 +1,7 @@
-<img src="Solhjoo_Logo.png" alt="Solhjoo Logo" height="80">
+# <img src="study_monitor.png" alt="Study Monitor Logo" height="30"> Study Monitor
+*Made by Soheil Solhjoo (2026)*
 
-# Study Monitor 📚
-
-**Study Monitor** is a powerful, privacy-first, locally hosted web application designed to track learning progress across multiple subjects. Whether you are tracking study hours, pages read, or completed curriculum modules, Study Monitor adapts to your workflow.
+**Study Monitor** is a simple, powerful, privacy-first, locally hosted web application designed to track learning progress across multiple subjects. Whether you are tracking study hours, pages read, or completed curriculum modules, Study Monitor adapts to your workflow.
 
 ## ✨ Features
 - **Multi-Subject Workspaces:** Create distinct profiles for different subjects (e.g., Dutch Language, UI Design, Math) within the same app.
