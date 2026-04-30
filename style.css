@@ -50,7 +50,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .chapter-box.done { background: var(--secondary); color: white; }
 
 /* Table and Books List Presentation */
-.table-wrapper { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-top: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.table-wrapper { border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 #progress-table { width: 100%; border-collapse: collapse; background: white; }
 #progress-table th, #progress-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
 #progress-table th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -88,16 +88,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     .form-row { flex-direction: column; }
     .modal-content { width: 90%; padding: 20px; }
     
-    /* Mobile Card Layout for Table */
-    .table-wrapper { border: none; box-shadow: none; background: transparent; overflow: visible; margin-top: 5px; }
-    #progress-table thead { display: none; }
-    #progress-table, #progress-table tbody, #progress-table tr, #progress-table td { display: block; width: 100%; box-sizing: border-box; }
-    #progress-table tr { margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel); padding: 10px 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    body.dark-mode #progress-table tr { background-color: #1e293b !important; }
-    #progress-table td { text-align: right; padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; white-space: normal; }
-    #progress-table td:last-child { border-bottom: none; padding-bottom: 5px; }
-    #progress-table td::before { content: attr(data-label); font-weight: 600; color: #64748b; font-size: 0.8rem; text-transform: uppercase; margin-right: 15px; text-align: left; }
-    .effort-cell { justify-content: flex-end; width: 100%; }
-    .chapter-grid { justify-content: flex-end; }
-    .action-cell { justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+    /* Horizontal Scrolling Table for Mobile */
+    #progress-table th, #progress-table td { white-space: nowrap; padding: 12px 10px; }
+    #progress-table td:nth-child(3) { white-space: normal; min-width: 200px; } /* Allows chapter grid to wrap properly */
 }
