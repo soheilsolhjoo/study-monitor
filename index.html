@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Monitor</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-main">
+                <div>
+                    <h1 style="margin: 0 0 10px 0;">Study Monitor</h1>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="font-weight: 600;">📚 Subject:</span>
+                        <select id="workspace-select" onchange="switchWorkspace(this.value)" class="workspace-select"></select>
+                        <button onclick="createNewWorkspace()" class="btn-small">+ New</button>
+                        <button onclick="renameCurrentWorkspace()" style="font-size: 1rem; background: none; border: none; cursor: pointer;" title="Rename Workspace">✏️</button>
+                        <button onclick="deleteCurrentWorkspace()" class="danger-text" style="font-size: 1rem;" title="Delete Workspace">🗑️</button>
+                    </div>
+                </div>
+                <div class="header-buttons">
+                    <button onclick="openAboutModal()" class="btn-alt">ℹ️ About</button>
+                    <button onclick="syncWithCloud()" class="btn-alt" id="cloud-sync-btn">☁️ Cloud Sync</button>
+                    <button onclick="openCloudSettingsModal()" class="btn-alt">⚙️ Cloud Settings</button>
+                    <button onclick="toggleDarkMode()" class="btn-alt" id="dark-mode-btn">🌙 Dark Mode</button>
+                    <button onclick="exportCSV()" class="btn-alt">📊 Export CSV</button>
+                    <button onclick="downloadBackup()" class="btn-alt">💾 Save to File</button>
+                    <input type="file" id="uploadFile" style="display:none" onchange="loadBackup(event)">
+                    <button onclick="document.getElementById('uploadFile').click()" class="btn-alt">📂 Load File</button>
+                </div>
+            </div>
+            
+            <div class="stats-banner">
+                <div style="display: flex; flex-direction: column; flex: 2;">
+                    <div class="main-gauge" style="margin-bottom: 5px;">
+                        <span id="total-hours">0</span> / <span id="max-hours" onclick="editMaxHours()" style="cursor: pointer;" title="Click to change max goal">730</span> <small id="unit-label-small">Hours</small>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                    </div>
+                </div>
+                <div id="chart-container" style="flex: 1; min-width: 250px; height: 80px; cursor: pointer; background: var(--panel); padding: 5px; border-radius: 8px;" onclick="toggleChartExpand()" title="Click to expand/collapse">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+        </header>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2>Study Progress</h2>
+                <button onclick="toggleAddBook()" class="btn-small">+ Add New Book</button>
+            </div>
+            
+            <!-- ADD BOOK FORM -->
+            <div id="add-book-form" class="form-row" style="display: none;">
+                <input type="text" id="new-name" placeholder="Book Title">
+                <input type="number" id="new-chapters" placeholder="Total Chapters">
+                <label>Access Ends:</label>
+                <input type="date" id="new-access-date">
+                <button onclick="addNewBook()" class="btn-secondary">Save Book</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="progress-table">
+                    <thead>
+                        <tr>
+                            <th>Book Title</th>
+                            <th id="effort-header">Total Effort (Hrs)</th>
+                            <th>Curriculum (Ch.)</th>
+                            <th>Days Left</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="book-rows"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <footer class="app-footer">
+            <img src="Solhjoo_Logo.png" alt="Solhjoo Logo" class="footer-logo">
+            <span>&copy; 2026 Soheil Solhjoo</span>
+        </footer>
+    </div>
+
+    <!-- Modify Book Modal -->
+    <div id="modify-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="panel-header">
+                <h3 id="modify-modal-title">Modify Book</h3>
+                <button onclick="cancelModify()" class="danger-text">✕</button>
+            </div>
+            <div class="form-row">
+                <label>Total Chapters:</label>
+                <input type="number" id="modify-chapters">
+            </div>
+            <div class="form-row">
+                <label>Access Ends:</label>
+                <input type="date" id="modify-expiry">
+            </div>
+            <h4>Activity Logs</h4>
+            <div id="modify-logs-list" style="max-height: 250px; overflow-y: auto; margin-top: 10px; margin-bottom: 20px;"></div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-alt" onclick="cancelModify()">Cancel</button>
+                <button class="btn-secondary" onclick="confirmModify()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Workspace Modal -->
+    <div id="new-workspace-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 400px;">
+            <div class="panel-header">
+                <h3>Create New Subject</h3>
+                <button onclick="closeNewWorkspaceModal()" class="danger-text">✕</button>
+            </div>
+            <div class="form-row" style="flex-direction: column; align-items: flex-start; background: transparent; padding: 0;">
+                <label style="font-weight: 600; margin-bottom: 5px;">Subject Name:</label>
+                <input type="text" id="new-ws-name" style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);" placeholder="e.g., Design Studies">
+                
+                <label style="font-weight: 600; margin-bottom: 5px;">Tracking Mode:</label>
+                <select id="new-ws-mode" onchange="updateNewWorkspaceLabels()" style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                    <option value="time">⏱️ Time Mode (Log minutes, view as HH:MM)</option>
+                    <option value="unit">🔢 Unit Mode (Log exactly what you type)</option>
+                    <option value="auto">✅ Auto Mode (Score = Completed Chapters)</option>
+                </select>
+                
+                <label style="font-weight: 600; margin-bottom: 5px;">Goal / Unit Label:</label>
+                <input type="text" id="new-ws-label" value="Hours" style="width: 100%; box-sizing: border-box; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button class="btn-alt" onclick="closeNewWorkspaceModal()">Cancel</button>
+                <button class="btn-secondary" onclick="confirmNewWorkspace()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cloud Settings Modal -->
+    <div id="cloud-settings-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 400px;">
+            <div class="panel-header">
+                <h3>Cloud Sync Settings</h3>
+                <button onclick="closeCloudSettingsModal()" class="danger-text">✕</button>
+            </div>
+            <div class="form-row" style="flex-direction: column; align-items: flex-start; background: transparent; padding: 0;">
+                <label style="font-weight: 600; margin-bottom: 5px;">GitHub Personal Access Token:</label>
+                <input type="password" id="cloud-token" style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);" placeholder="ghp_xxxxxxxxxxxx">
+                
+                <label style="font-weight: 600; margin-bottom: 5px;">GitHub Gist ID:</label>
+                <input type="text" id="cloud-gist-id" style="width: 100%; box-sizing: border-box; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);" placeholder="e.g. 8b3c9...">
+                
+                <small style="margin-top: 10px; color: #64748b;">Your credentials are saved locally in this browser and are never shared.</small>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button class="btn-alt" onclick="closeCloudSettingsModal()">Cancel</button>
+                <button class="btn-secondary" onclick="saveCloudSettings()">Save Config</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="about-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 400px;">
+            <div class="panel-header">
+                <h3>About Study Monitor</h3>
+                <button onclick="closeAboutModal()" class="danger-text">✕</button>
+            </div>
+            <div style="line-height: 1.6; color: var(--text);">
+                <p><strong>Study Monitor</strong> is a fully local, privacy-first tracker for all your learning goals.</p>
+                <p>It supports multi-subject workspaces, custom tracking modes (Time, Units, Auto), and cross-device syncing via GitHub.</p>
+                <p style="margin-top: 15px;">
+                    <a href="https://github.com/YOUR_GITHUB_USERNAME/StudyMonitor" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📖 Read the full documentation on GitHub</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
