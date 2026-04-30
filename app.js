@@ -2,13 +2,13 @@ let appData = JSON.parse(localStorage.getItem('hourBankAppData'));
 let cloudConfig = JSON.parse(localStorage.getItem('hourBankCloudConfig')) || { token: '', gistId: '' };
 
 if (!appData) {
-    const legacyData = JSON.parse(localStorage.getItem('dutchMasteryData'));
+    const legacyData = JSON.parse(localStorage.getItem('legacyStudyData'));
     if (legacyData) {
         appData = {
-            activeWorkspace: "Dutch Study",
+            activeWorkspace: "Default Subject",
             isDarkMode: legacyData.isDarkMode || false,
             workspaces: {
-                "Dutch Study": {
+                "Default Subject": {
                     totalMinutes: legacyData.totalMinutes || 0,
                     books: legacyData.books || [],
                     maxHours: legacyData.maxHours || 730,
@@ -183,6 +183,7 @@ function logActivity(type, bookId, value) {
 function addMinutes(bookId, mins) {
     if (!mins || isNaN(mins)) return;
     const addedMins = parseFloat(mins);
+    if (addedMins === 0) return;
     
     logActivity('minutes', bookId, addedMins);
     saveData();
@@ -268,8 +269,11 @@ function editMaxHours() {
     const currentMax = studyData.maxHours || (studyData.mode === 'time' ? 730 : 100);
     const newMax = prompt(`Enter new maximum ${studyData.unitLabel || 'goal'}:`, currentMax);
     if (newMax !== null && !isNaN(newMax) && newMax.trim() !== '') {
-        studyData.maxHours = parseInt(newMax);
-        saveData();
+        const parsedMax = parseInt(newMax);
+        if (parsedMax > 0) {
+            studyData.maxHours = parsedMax;
+            saveData();
+        }
     }
 }
 
@@ -427,8 +431,13 @@ function openModifyModal(bookId) {
     const chapInput = document.getElementById('modify-chapters');
     chapInput.value = pendingBookEdit.chapters;
     chapInput.onchange = (e) => {
-        pendingBookEdit.chapters = parseInt(e.target.value);
+        let newCh = parseInt(e.target.value);
+        if (isNaN(newCh) || newCh <= 0) newCh = 1;
+        pendingBookEdit.chapters = newCh;
+        e.target.value = newCh;
         pendingBookEdit.done = pendingBookEdit.done.filter(ch => ch <= pendingBookEdit.chapters);
+        pendingLogsEdit = pendingLogsEdit.filter(l => !(l.type === 'chapter_done' && l.value > pendingBookEdit.chapters));
+        renderPendingLogs();
     };
     
     const expInput = document.getElementById('modify-expiry');
@@ -709,7 +718,8 @@ async function syncWithCloud() {
             headers: {
                 'Authorization': `Bearer ${cloudConfig.token}`,
                 'Accept': 'application/vnd.github.v3+json'
-            }
+            },
+            cache: 'no-store'
         });
 
         if (!getResponse.ok) throw new Error('Failed to fetch from GitHub');
@@ -764,62 +774,31 @@ function mergeCloudData(remoteData) {
     let remoteDeleted = remoteData.deletedWorkspaces || {};
     let remoteUpdated = remoteData.lastUpdated || {};
 
-    // Merge deleted workspaces (keep newest timestamp)
-    for (let ws in remoteDeleted) {
-        if (!appData.deletedWorkspaces[ws] || remoteDeleted[ws] > appData.deletedWorkspaces[ws]) {
-            appData.deletedWorkspaces[ws] = remoteDeleted[ws];
-        }
-    }
+    const allWorkspaceNames = new Set([
+        ...Object.keys(appData.workspaces), 
+        ...Object.keys(remoteData.workspaces || {}),
+        ...Object.keys(appData.deletedWorkspaces),
+        ...Object.keys(remoteDeleted)
+    ]);
 
-    // Merge lastUpdated
-    for (let ws in remoteUpdated) {
-        if (!appData.lastUpdated[ws] || remoteUpdated[ws] > appData.lastUpdated[ws]) {
-            appData.lastUpdated[ws] = remoteUpdated[ws];
-        }
-    }
+    allWorkspaceNames.forEach(wsName => {
+        const localDelTime = appData.deletedWorkspaces[wsName] || 0;
+        const remoteDelTime = remoteDeleted[wsName] || 0;
+        const latestDelTime = Math.max(localDelTime, remoteDelTime);
 
-    // Resolve conflicts
-    for (let ws in appData.deletedWorkspaces) {
-        const deletedTime = appData.deletedWorkspaces[ws];
-        const updatedTime = appData.lastUpdated[ws] || 0;
-        
-        if (deletedTime > updatedTime) {
-            // It was deleted AFTER it was last updated. Apply deletion.
-            if (remoteData.workspaces[ws]) delete remoteData.workspaces[ws];
-            if (appData.workspaces[ws]) delete appData.workspaces[ws];
+        const localUpTime = appData.lastUpdated[wsName] || 0;
+        const remoteUpTime = remoteUpdated[wsName] || 0;
+        const latestUpTime = Math.max(localUpTime, remoteUpTime);
+
+        if (latestDelTime > 0 && latestDelTime >= latestUpTime) {
+            delete appData.workspaces[wsName];
+            appData.deletedWorkspaces[wsName] = latestDelTime;
         } else {
-            // It was updated AFTER it was deleted (i.e. recreated). Remove from deleted list.
-            delete appData.deletedWorkspaces[ws];
-        }
-    }
-
-    Object.keys(remoteData.workspaces).forEach(wsName => {
-        if (!appData.workspaces[wsName]) {
-            appData.workspaces[wsName] = remoteData.workspaces[wsName];
-        } else {
-            let localWs = appData.workspaces[wsName];
-            let remoteWs = remoteData.workspaces[wsName];
-
-            // Safely merge activity logs using their unique timestamps
-            let allLogsMap = new Map();
-            (localWs.activityLog || []).forEach(l => allLogsMap.set(l.timestamp, l));
-            (remoteWs.activityLog || []).forEach(l => allLogsMap.set(l.timestamp, l));
-            localWs.activityLog = Array.from(allLogsMap.values()).sort((a,b) => a.timestamp - b.timestamp);
-
-            // Combine books to keep highest numbers (chapters done, limits, etc.)
-            let allBooksMap = new Map();
-            (remoteWs.books || []).forEach(b => allBooksMap.set(b.id, JSON.parse(JSON.stringify(b))));
-            (localWs.books || []).forEach(b => {
-                if (allBooksMap.has(b.id)) {
-                    let remoteBook = allBooksMap.get(b.id);
-                    b.done = Array.from(new Set([...(b.done || []), ...(remoteBook.done || [])]));
-                    b.chapters = Math.max(b.chapters || 0, remoteBook.chapters || 0);
-                }
-                allBooksMap.set(b.id, b);
-            });
-            localWs.books = Array.from(allBooksMap.values());
-            
-            localWs.maxHours = Math.max(localWs.maxHours || 0, remoteWs.maxHours || 0);
+            delete appData.deletedWorkspaces[wsName];
+            if (remoteUpTime > localUpTime && remoteData.workspaces[wsName]) {
+                appData.workspaces[wsName] = remoteData.workspaces[wsName];
+                appData.lastUpdated[wsName] = remoteUpTime;
+            }
         }
     });
 
@@ -836,6 +815,7 @@ function mergeCloudData(remoteData) {
 }
 
 function loadBackup(event) {
+    if (!event.target.files || event.target.files.length === 0) return;
     const reader = new FileReader();
     reader.onload = (e) => {
         const imported = JSON.parse(e.target.result);
@@ -864,6 +844,7 @@ function loadBackup(event) {
         document.getElementById('dark-mode-btn').textContent = appData.isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
         
         saveData();
+        event.target.value = '';
     };
     reader.readAsText(event.target.files[0]);
 }
