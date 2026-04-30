@@ -114,14 +114,14 @@ function renderDashboard() {
         }
 
         row.innerHTML = `
-            <td data-label="Book Title"><strong>${escapeHTML(book.name)}</strong></td>
-            <td data-label="Total Effort">
+            <td><strong>${escapeHTML(book.name)}</strong></td>
+            <td>
                 <div class="effort-cell">
                     <span class="effort-val">${effortDisplay}</span>
                     ${effortInput}
                 </div>
             </td>
-            <td data-label="Curriculum">
+            <td>
                 <div class="chapter-controls">
                     <div class="chapter-grid">
                         ${Array.from({length: Math.max(0, book.chapters || 0)}, (_, i) => `
@@ -131,8 +131,8 @@ function renderDashboard() {
                     </div>
                 </div>
             </td>
-            <td data-label="Days Left" class="${accessClass}">${accessStatus}</td>
-            <td data-label="Actions">
+            <td class="${accessClass}">${accessStatus}</td>
+            <td>
                 <div class="action-cell">
                     <button class="btn-icon" onclick="moveBookUp(${book.id})" title="Move Up">↑</button>
                     <button class="btn-icon" onclick="moveBookDown(${book.id})" title="Move Down">↓</button>
