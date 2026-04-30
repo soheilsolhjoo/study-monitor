@@ -16,7 +16,7 @@
                         <img src="study_monitor.png" alt="Study Monitor Logo" class="header-logo">
                         <h1 style="margin: 0;">Study Monitor</h1>
                     </div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <span style="font-weight: 600;">📚 Subject:</span>
                         <select id="workspace-select" onchange="switchWorkspace(this.value)" class="workspace-select"></select>
                         <button onclick="createNewWorkspace()" class="btn-small">+ New</button>
@@ -113,7 +113,7 @@
 
     <!-- New Workspace Modal -->
     <div id="new-workspace-modal" class="modal" style="display: none;">
-        <div class="modal-content" style="width: 400px;">
+        <div class="modal-content" style="width: 90%; max-width: 400px;">
             <div class="panel-header">
                 <h3>Create New Subject</h3>
                 <button onclick="closeNewWorkspaceModal()" class="danger-text">✕</button>
@@ -141,7 +141,7 @@
 
     <!-- Cloud Settings Modal -->
     <div id="cloud-settings-modal" class="modal" style="display: none;">
-        <div class="modal-content" style="width: 400px;">
+        <div class="modal-content" style="width: 90%; max-width: 400px;">
             <div class="panel-header">
                 <h3>Cloud Sync Settings</h3>
                 <button onclick="closeCloudSettingsModal()" class="danger-text">✕</button>
@@ -164,7 +164,7 @@
 
     <!-- About Modal -->
     <div id="about-modal" class="modal" style="display: none;">
-        <div class="modal-content" style="width: 400px;">
+        <div class="modal-content" style="width: 90%; max-width: 400px;">
             <div class="panel-header">
                 <h3>About Study Monitor </h3>
                 <button onclick="closeAboutModal()" class="danger-text">✕</button>
