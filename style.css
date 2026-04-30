@@ -31,6 +31,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .container { max-width: 1200px; margin: 0 auto; }
 
 .header-main { display: flex; justify-content: space-between; align-items: center; }
+.header-logo { height: 36px; width: auto; object-fit: contain; }
 .workspace-select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font-family: inherit; font-size: 0.9rem; font-weight: 600; outline: none; }
 .stats-banner { display: flex; align-items: center; gap: 30px; margin-top: 20px; }
 
@@ -88,4 +89,3 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .danger-text { color: var(--warning); background: none; border: none; cursor: pointer; font-size: 0.8rem; }
 
 .app-footer { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 20px 0; margin-top: 20px; font-size: 0.85rem; color: #94a3b8; }
-.footer-logo { height: 28px; width: auto; object-fit: contain; }

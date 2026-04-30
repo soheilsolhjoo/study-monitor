@@ -12,7 +12,10 @@
         <header>
             <div class="header-main">
                 <div>
-                    <h1 style="margin: 0 0 10px 0;">Study Monitor</h1>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                        <img src="study_monitor.png" alt="Study Monitor Logo" class="header-logo">
+                        <h1 style="margin: 0;">Study Monitor</h1>
+                    </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <span style="font-weight: 600;">📚 Subject:</span>
                         <select id="workspace-select" onchange="switchWorkspace(this.value)" class="workspace-select"></select>
@@ -80,7 +83,6 @@
         </section>
 
         <footer class="app-footer">
-            <img src="Solhjoo_Logo.png" alt="Solhjoo Logo" class="footer-logo">
             <span>&copy; 2026 Soheil Solhjoo</span>
         </footer>
     </div>
@@ -171,7 +173,7 @@
                 <p><strong>Study Monitor</strong> is a fully local, privacy-first tracker for all your learning goals.</p>
                 <p>It supports multi-subject workspaces, custom tracking modes (Time, Units, Auto), and cross-device syncing via GitHub.</p>
                 <p style="margin-top: 15px;">
-                    <a href="https://github.com/YOUR_GITHUB_USERNAME/StudyMonitor" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📖 Read the full documentation on GitHub</a>
+                    <a href="https://github.com/soheilsolhjoo/study-monitor" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📖 Read the full documentation on GitHub</a>
                 </p>
             </div>
         </div>
