@@ -4,7 +4,7 @@
 **Study Monitor** is a simple, powerful, privacy-first, locally hosted web application designed to track learning progress across multiple subjects. Whether you are tracking study hours, pages read, or completed curriculum modules, Study Monitor adapts to your workflow.
 
 ## ✨ Features
-- **Multi-Subject Workspaces:** Create distinct profiles for different subjects (e.g., Dutch Language, UI Design, Math) within the same app.
+- **Multi-Subject Workspaces:** Create distinct profiles for different subjects (e.g., Language Learning, UI Design, Math) within the same app.
 - **Flexible Tracking Modes:** 
   - *Time Mode:* Input minutes studied and view your progress in `HH:MM`.
   - *Unit Mode:* Track natural numbers like pages, flashcards, or exercises.
