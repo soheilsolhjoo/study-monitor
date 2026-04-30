@@ -86,8 +86,18 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     .header-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
     .stats-banner { flex-direction: column; align-items: stretch; gap: 15px; }
     .form-row { flex-direction: column; }
-    .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    #progress-table th, #progress-table td { white-space: nowrap; padding: 12px 10px; }
     .modal-content { width: 90%; padding: 20px; }
-    .action-cell { flex-wrap: wrap; }
+    
+    /* Mobile Card Layout for Table */
+    .table-wrapper { border: none; box-shadow: none; background: transparent; overflow: visible; margin-top: 5px; }
+    #progress-table thead { display: none; }
+    #progress-table, #progress-table tbody, #progress-table tr, #progress-table td { display: block; width: 100%; box-sizing: border-box; }
+    #progress-table tr { margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel); padding: 10px 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    body.dark-mode #progress-table tr { background-color: #1e293b !important; }
+    #progress-table td { text-align: right; padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; white-space: normal; }
+    #progress-table td:last-child { border-bottom: none; padding-bottom: 5px; }
+    #progress-table td::before { content: attr(data-label); font-weight: 600; color: #64748b; font-size: 0.8rem; text-transform: uppercase; margin-right: 15px; text-align: left; }
+    .effort-cell { justify-content: flex-end; width: 100%; }
+    .chapter-grid { justify-content: flex-end; }
+    .action-cell { justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 }
