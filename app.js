@@ -596,6 +596,9 @@ function renameCurrentWorkspace() {
     if (newName && newName.trim() !== '' && newName.trim() !== currentName) {
         const cleanName = newName.trim();
         if (!appData.workspaces[cleanName]) {
+            appData.deletedWorkspaces = appData.deletedWorkspaces || {};
+            appData.deletedWorkspaces[currentName] = Date.now();
+            
             appData.workspaces[cleanName] = appData.workspaces[currentName];
             delete appData.workspaces[currentName];
             appData.activeWorkspace = cleanName;
@@ -615,6 +618,9 @@ function deleteCurrentWorkspace() {
         return;
     }
     if (confirm(`Are you sure you want to delete the subject "${appData.activeWorkspace}" and all its data?`)) {
+        appData.deletedWorkspaces = appData.deletedWorkspaces || {};
+        appData.deletedWorkspaces[appData.activeWorkspace] = Date.now();
+        
         delete appData.workspaces[appData.activeWorkspace];
         appData.activeWorkspace = Object.keys(appData.workspaces)[0];
         studyData = appData.workspaces[appData.activeWorkspace];
@@ -625,6 +631,8 @@ function deleteCurrentWorkspace() {
 
 function saveData() {
     syncTotals();
+    appData.lastUpdated = appData.lastUpdated || {};
+    appData.lastUpdated[appData.activeWorkspace] = Date.now();
     localStorage.setItem('hourBankAppData', JSON.stringify(appData));
     renderDashboard();
     renderChart();
@@ -750,6 +758,41 @@ async function syncWithCloud() {
 function mergeCloudData(remoteData) {
     if (!remoteData || !remoteData.workspaces) return;
     
+    appData.deletedWorkspaces = appData.deletedWorkspaces || {};
+    appData.lastUpdated = appData.lastUpdated || {};
+    
+    let remoteDeleted = remoteData.deletedWorkspaces || {};
+    let remoteUpdated = remoteData.lastUpdated || {};
+
+    // Merge deleted workspaces (keep newest timestamp)
+    for (let ws in remoteDeleted) {
+        if (!appData.deletedWorkspaces[ws] || remoteDeleted[ws] > appData.deletedWorkspaces[ws]) {
+            appData.deletedWorkspaces[ws] = remoteDeleted[ws];
+        }
+    }
+
+    // Merge lastUpdated
+    for (let ws in remoteUpdated) {
+        if (!appData.lastUpdated[ws] || remoteUpdated[ws] > appData.lastUpdated[ws]) {
+            appData.lastUpdated[ws] = remoteUpdated[ws];
+        }
+    }
+
+    // Resolve conflicts
+    for (let ws in appData.deletedWorkspaces) {
+        const deletedTime = appData.deletedWorkspaces[ws];
+        const updatedTime = appData.lastUpdated[ws] || 0;
+        
+        if (deletedTime > updatedTime) {
+            // It was deleted AFTER it was last updated. Apply deletion.
+            if (remoteData.workspaces[ws]) delete remoteData.workspaces[ws];
+            if (appData.workspaces[ws]) delete appData.workspaces[ws];
+        } else {
+            // It was updated AFTER it was deleted (i.e. recreated). Remove from deleted list.
+            delete appData.deletedWorkspaces[ws];
+        }
+    }
+
     Object.keys(remoteData.workspaces).forEach(wsName => {
         if (!appData.workspaces[wsName]) {
             appData.workspaces[wsName] = remoteData.workspaces[wsName];
@@ -780,8 +823,14 @@ function mergeCloudData(remoteData) {
         }
     });
 
-    if (!appData.workspaces[appData.activeWorkspace]) {
-        appData.activeWorkspace = Object.keys(appData.workspaces)[0];
+    if (!appData.workspaces[appData.activeWorkspace] || Object.keys(appData.workspaces).length === 0) {
+        const keys = Object.keys(appData.workspaces);
+        if (keys.length > 0) {
+            appData.activeWorkspace = keys[0];
+        } else {
+            appData.workspaces["Main Subject"] = { totalMinutes: 0, books: [], maxHours: 730, activityLog: [], mode: 'time', unitLabel: 'Hours' };
+            appData.activeWorkspace = "Main Subject";
+        }
     }
     renderWorkspaceDropdown();
 }
