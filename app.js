@@ -700,19 +700,20 @@ function saveCloudSettings() {
     alert('Cloud settings saved successfully!');
 }
 
-async function syncWithCloud() {
+async function pushToCloud() {
     if (!cloudConfig.token || !cloudConfig.gistId) {
         alert("Please configure your GitHub Token and Gist ID first.");
         openCloudSettingsModal();
         return;
     }
 
-    const syncBtn = document.getElementById('cloud-sync-btn');
-    syncBtn.textContent = '☁️ Syncing...';
-    syncBtn.disabled = true;
+    if (!confirm("This will overwrite the cloud data with your local data. Proceed?")) return;
+
+    const pushBtn = document.getElementById('cloud-push-btn');
+    pushBtn.textContent = '📤 Pushing...';
+    pushBtn.disabled = true;
 
     try {
-        // 1. Fetch Remote Data
         const getResponse = await fetch(`https://api.github.com/gists/${cloudConfig.gistId}`, {
             method: 'GET',
             headers: {
@@ -725,17 +726,12 @@ async function syncWithCloud() {
         if (!getResponse.ok) throw new Error('Failed to fetch from GitHub');
 
         const gistData = await getResponse.json();
-        const fileName = Object.keys(gistData.files)[0]; // Use the first file in the Gist
-        const remoteAppData = JSON.parse(gistData.files[fileName].content);
-
-        // 2. Merge Data safely
-        if (remoteAppData && remoteAppData.workspaces) {
-            mergeCloudData(remoteAppData);
-            studyData = appData.workspaces[appData.activeWorkspace];
-            saveData(); // Save locally and re-render the dashboard
+        if (!gistData.files || Object.keys(gistData.files).length === 0) {
+            throw new Error("Your Gist is empty. Please make sure it contains a file (e.g., hour_bank_data.json).");
         }
+        
+        const fileName = Object.keys(gistData.files)[0]; // Use the first file in the Gist
 
-        // 3. Push Merged Data Back
         const patchData = {
             files: {
                 [fileName]: { content: JSON.stringify(appData, null, 2) }
@@ -754,64 +750,87 @@ async function syncWithCloud() {
 
         if (!patchResponse.ok) throw new Error('Failed to update GitHub Gist');
 
-        syncBtn.textContent = '☁️ Sync Complete!';
-        setTimeout(() => { syncBtn.textContent = '☁️ Cloud Sync'; syncBtn.disabled = false; }, 2000);
+        pushBtn.textContent = '📤 Push Complete!';
+        setTimeout(() => { pushBtn.textContent = '📤 Push to Cloud'; pushBtn.disabled = false; }, 2000);
 
     } catch (error) {
         console.error(error);
-        alert('Cloud Sync Failed: ' + error.message);
-        syncBtn.textContent = '☁️ Cloud Sync';
-        syncBtn.disabled = false;
+        alert('Cloud Push Failed: ' + error.message);
+        pushBtn.textContent = '📤 Push to Cloud';
+        pushBtn.disabled = false;
     }
 }
 
-function mergeCloudData(remoteData) {
-    if (!remoteData || !remoteData.workspaces) return;
-    
-    appData.deletedWorkspaces = appData.deletedWorkspaces || {};
-    appData.lastUpdated = appData.lastUpdated || {};
-    
-    let remoteDeleted = remoteData.deletedWorkspaces || {};
-    let remoteUpdated = remoteData.lastUpdated || {};
+async function pullFromCloud() {
+    if (!cloudConfig.token || !cloudConfig.gistId) {
+        alert("Please configure your GitHub Token and Gist ID first.");
+        openCloudSettingsModal();
+        return;
+    }
 
-    const allWorkspaceNames = new Set([
-        ...Object.keys(appData.workspaces), 
-        ...Object.keys(remoteData.workspaces || {}),
-        ...Object.keys(appData.deletedWorkspaces),
-        ...Object.keys(remoteDeleted)
-    ]);
+    if (!confirm("This will overwrite your local data with the cloud data. Proceed?")) return;
 
-    allWorkspaceNames.forEach(wsName => {
-        const localDelTime = appData.deletedWorkspaces[wsName] || 0;
-        const remoteDelTime = remoteDeleted[wsName] || 0;
-        const latestDelTime = Math.max(localDelTime, remoteDelTime);
+    const pullBtn = document.getElementById('cloud-pull-btn');
+    pullBtn.textContent = '📥 Pulling...';
+    pullBtn.disabled = true;
 
-        const localUpTime = appData.lastUpdated[wsName] || 0;
-        const remoteUpTime = remoteUpdated[wsName] || 0;
-        const latestUpTime = Math.max(localUpTime, remoteUpTime);
+    try {
+        const getResponse = await fetch(`https://api.github.com/gists/${cloudConfig.gistId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${cloudConfig.token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            cache: 'no-store'
+        });
 
-        if (latestDelTime > 0 && latestDelTime >= latestUpTime) {
-            delete appData.workspaces[wsName];
-            appData.deletedWorkspaces[wsName] = latestDelTime;
-        } else {
-            delete appData.deletedWorkspaces[wsName];
-            if (remoteUpTime > localUpTime && remoteData.workspaces[wsName]) {
-                appData.workspaces[wsName] = remoteData.workspaces[wsName];
-                appData.lastUpdated[wsName] = remoteUpTime;
+        if (!getResponse.ok) throw new Error('Failed to fetch from GitHub');
+
+        const gistData = await getResponse.json();
+        if (!gistData.files || Object.keys(gistData.files).length === 0) {
+            throw new Error("Your Gist is empty. There is no data to pull.");
+        }
+
+        const fileName = Object.keys(gistData.files)[0];
+        const remoteAppData = JSON.parse(gistData.files[fileName].content);
+
+        if (remoteAppData && remoteAppData.workspaces) {
+            appData = remoteAppData;
+            
+            Object.values(appData.workspaces).forEach(ws => {
+                if (!ws.mode) ws.mode = 'time';
+                if (!ws.unitLabel) ws.unitLabel = 'Hours';
+            });
+            
+            if (!appData.workspaces[appData.activeWorkspace] || Object.keys(appData.workspaces).length === 0) {
+                const keys = Object.keys(appData.workspaces);
+                if (keys.length > 0) {
+                    appData.activeWorkspace = keys[0];
+                } else {
+                    appData.workspaces["Main Subject"] = { totalMinutes: 0, books: [], maxHours: 730, activityLog: [], mode: 'time', unitLabel: 'Hours' };
+                    appData.activeWorkspace = "Main Subject";
+                }
+            }
+            
+            studyData = appData.workspaces[appData.activeWorkspace];
+            renderWorkspaceDropdown();
+            saveData();
+            
+            if (appData.isDarkMode !== undefined) {
+                document.body.classList.toggle('dark-mode', appData.isDarkMode);
+                document.getElementById('dark-mode-btn').textContent = appData.isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
             }
         }
-    });
 
-    if (!appData.workspaces[appData.activeWorkspace] || Object.keys(appData.workspaces).length === 0) {
-        const keys = Object.keys(appData.workspaces);
-        if (keys.length > 0) {
-            appData.activeWorkspace = keys[0];
-        } else {
-            appData.workspaces["Main Subject"] = { totalMinutes: 0, books: [], maxHours: 730, activityLog: [], mode: 'time', unitLabel: 'Hours' };
-            appData.activeWorkspace = "Main Subject";
-        }
+        pullBtn.textContent = '📥 Pull Complete!';
+        setTimeout(() => { pullBtn.textContent = '📥 Pull from Cloud'; pullBtn.disabled = false; }, 2000);
+
+    } catch (error) {
+        console.error(error);
+        alert('Cloud Pull Failed: ' + error.message);
+        pullBtn.textContent = '📥 Pull from Cloud';
+        pullBtn.disabled = false;
     }
-    renderWorkspaceDropdown();
 }
 
 function loadBackup(event) {

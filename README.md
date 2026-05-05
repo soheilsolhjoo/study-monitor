@@ -40,4 +40,4 @@ You can use Study Monitor perfectly fine locally by using the "Save to File" and
 1. Open `index.html` in your browser.
 2. Click **⚙️ Cloud Settings** in the top navigation bar.
 3. Paste your Token and your Gist ID into the respective fields and click Save.
-4. You're done! You can now click **☁️ Cloud Sync** anytime to pull and push your latest data.
+4. You're done! You can now click **📤 Push to Cloud** and **📥 Pull from Cloud** anytime to manually sync your data.
